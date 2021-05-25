@@ -21,7 +21,10 @@ $serve->run();
 ```
 
 - open commandprom
-- `sh php spark`
+
+```sh
+php spark
+```
 
 ### INSTALATION
 
