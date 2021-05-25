@@ -18,7 +18,7 @@ $serve->run();
 ```
 
 - Library
-  `composer install appkita/pdftoimage`
+  `composer install appkita/spark-serve`
 
 ### Lear More
 
