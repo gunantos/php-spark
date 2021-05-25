@@ -1,0 +1,36 @@
+{
+    "name": "appkita/spark-serve",
+    "description": "PHP Build web server without server. You can use to deploy your aplication",
+    "type": "library",
+    "require-dev": {
+        "phpunit/phpunit": "^9.5"
+    },
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Gunanto Simamora",
+            "email": "gunanto.simamora@gmail.com",
+            "homepage": "https://app-kita.com",
+            "role": "Developer"
+        }
+    ],
+    "require": {
+        "php": ">=7.2"
+    },
+    "autoload": {
+        "psr-4": {
+            "Appkita\\SPARK\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/"
+        }
+    },
+    "support": {
+        "email": "gunanto@app-kita.com",
+        "forum": "https://discord.com/channels/846592998149062686/846592998149062689",
+		"source": "https://github.com/gunantos/CI4RESTFULL",
+		"slack": "app-kita.slack.com"
+    }
+}
