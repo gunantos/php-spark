@@ -1,5 +1,6 @@
 # PHP SIMPLE SPARK
 
+[![PHP Composer](https://github.com/gunantos/php-spark/actions/workflows/php.yml/badge.svg)](https://github.com/gunantos/php-spark/actions/workflows/php.yml)<br>
 <a href="https://sponsor.app-kita.net" target="_blank"><img src="https://img.shields.io/github/sponsors/gunantos?logo=gunantos&style=for-the-badge" title="Pay Coffe" /></a><br>
 PHP Create Spark Serve for develop your PHP Aplication<br>
 
