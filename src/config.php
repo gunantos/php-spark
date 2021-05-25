@@ -7,9 +7,10 @@ use Symfony\Component\Filesystem\Filesystem;
 
 trait Config {
     protected $path = '';
-    protected $router = '';
-    protected $host = '::1';
+    protected $router = [];
+    protected $host = '127.0.0.1';
     protected $port = '8080';
+    private $indexFiles = ['index.html', 'index.php'];
     protected $show_header = true;
 
     protected function initConfig() {
@@ -33,6 +34,7 @@ trait Config {
                     if (isset($path['host'])) $this->setHost($path['host']);
                     if (isset($path['router'])) $this->setRouter($path['router']);
                     if (isset($path['port'])) $this->setPort($path['port']);
+                    if (isset($path['indexFiles'])) $this->setIndexFiles($path['indexFiles']);
                     if (isset($path['show_header'])) $this->setShowHeader($path['show_header']);
                 }
             } else {
@@ -41,14 +43,40 @@ trait Config {
         }
     }
 
+    public function setIndexFiles(array $indeks) {
+        if (!empty($indeks) && \is_array($indeks) && \sizeof($indeks) > 0) {
+            $this->indexFiles = $indeks;
+        }
+        return $this;
+    }
+
+    public function getIndexFiles() {
+        if (empty($this->getIndexFiles) || !is_array($this->getIndexFiles) || sizeof($this->getIndexFiles) < 1) {
+            return  ['index.html', 'index.php'];
+        }
+        return $this->getIndexFiles;
+    }
+
     public function setShowHeader(bool $header) {
         $this->show_header = $header;
         return $this;
     }
     
-    public static function getRootPath()
+    public function getRootPath($page = '')
     {
-        return dirname(dirname(dirname(dirname(__DIR__))));
+        $page = \ltrim(\rtrim(\rtrim($page, '/'), '\\'));
+        if (!empty($this->path)) {
+            if (\file_exists($this->path)) {
+                return realpath($this->path.DIRECTORY_SEPARATOR. $page);
+            } else {
+                throw new PublicPathNotSet('Your web host path '. $this->path.' not found');
+            }
+        }
+        if (class_exists('\Composer\InstalledVersions')) {
+            return dirname(dirname(dirname(dirname(__DIR__)))). $page;
+        } else {
+            return \dirname(realpath(__FILE__)). $page;
+        }
     }
 
 	public function setRouter(array $router) {
@@ -59,6 +87,12 @@ trait Config {
 	}
 
 	public function getRouter() : array {
+        if (empty($this->router)) {
+            $this->router = [];
+        }
+        if (!\is_array($this->router)) {
+            $this->router = [$this->router];
+        }
         return $this->router;
 	}
 
@@ -84,7 +118,7 @@ trait Config {
     }
 
     public function getHost() : string {
-        return empty($this->host) ? '127.0.0' : $this->host;
+        return empty($this->host) ? '127.0.0.1' : $this->host;
     }
 
     public function setPort($port) {

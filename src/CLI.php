@@ -516,7 +516,7 @@ class CLI
 	 * Parses the command line it was called from and collects all
 	 * options and valid segments.
 	 */
-	protected static function parseCommandLine()
+	public static function parseCommandLine()
 	{
 		$args = $_SERVER['argv'] ?? [];
 		array_shift($args); // scrap invoking program
