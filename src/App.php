@@ -3,29 +3,37 @@ namespace Appkita\SPARK;
 use Exception;
 
 Class App {
-    protected static $path = '';
-    protected static $router = '';
-    private static $indexFiles = ['index.html', 'index.php'];
+    protected $path = '';
+    protected $router = '';
+    private $indexFiles = ['index.html', 'index.php'];
 
-    public static function init($config = '') {
+    function __construct($config = '') {
+        $this->init($config);
+    }
+
+    public function getListFiles() {
+        return $this->listFiles;
+    }
+
+    public function init($config = '') {
         if (!empty($config)) {
             if (\is_string($config)) {
-                App::$path = $config;
+                $this->path = $config;
             } else if (\is_object($config)) {
-                if (isset($config->path)) App::$path = $config->path;
-                if (isset($config->router)) App::$router = $config->router;
-                if (isset($config->indexFiles)) App::$indexFiles = $config->indexFiles;
+                if (isset($config->path)) $this->path = $config->path;
+                if (isset($config->router)) $this->router = $config->router;
+                if (isset($config->indexFiles)) $this->indexFiles = $config->indexFiles;
             } else if (\is_array($config)) {
                 $config = (object) $config;
-                if (isset($config->path)) App::$path = $config->path;
-                if (isset($config->router)) App::$router = $config->router;
-                if (isset($config->indexFiles)) App::$indexFiles = $config->indexFiles;
+                if (isset($config->path)) $this->path = $config->path;
+                if (isset($config->router)) $this->router = $config->router;
+                if (isset($config->indexFiles)) $this->indexFiles = $config->indexFiles;
             }
         }
     }
 
-    public static function getRouter($page) {
-        $router = App::$router;
+    public function getRouter($page) {
+        $router = $this->router;
         if (\is_array($router)){
             foreach ($router as $regex => $fn)
             {
@@ -39,10 +47,10 @@ Class App {
         return $page;
     }
 
-    public static function getIndexPage($page) {
+    public function getIndexPage($page) {
         if (is_dir($page))
         {
-            foreach (App::$indexFiles as $filename)
+            foreach ($this->indexFiles as $filename)
             {
 
                 $fn = $page.DIRECTORY_SEPARATOR.$filename;
@@ -65,12 +73,12 @@ Class App {
         }
     }
 
-    public static function openPage($page = null) {
+    public function openPage($page = null) {
         if (empty($page)) {
             $page = '';
         }
         $page = \ltrim(\rtrim(rtrim($page, '/'), '\\'));
-        $page = App::$path . $page;
+        $page = $this->path . $page;
         if (!\file_exists($page)) {
             include_once self::pageError(404);
             return true;
@@ -82,7 +90,14 @@ Class App {
             include_once $page;
             return true;
         } else {
-            header('Content-Type: '.mime_content_type($page));
+            if ($ext == 'html' || $ext == 'htm') {
+                $mimi = 'text/html';
+            } else if ($ext == 'xhtml') {
+                $mimi = 'application/xhtml+xml';
+            }else {
+                $mimi = mime_content_type($page);
+            }
+            header('Content-Type: '. $mimi);
             $fh = fopen($page, 'r');
             fpassthru($fh);
             fclose($fh);
@@ -90,8 +105,22 @@ Class App {
         }        
     }
 }
-$env = json_decode(\getenv('CONFIG_ENV'));
-$app = new App();
-$app::init($env);
-$page =  $_SERVER['REQUEST_URI'];
-return $app::openPage($page);
+ function is_cli() : bool{
+        if ( defined('STDIN') ||  
+             php_sapi_name() === 'cli' || 
+             array_key_exists('SHELL', $_ENV) ||
+             empty($_SERVER['REMOTE_ADDR']) and !isset($_SERVER['HTTP_USER_AGENT']) and count($_SERVER['argv']) > 0 ||
+            !array_key_exists('REQUEST_METHOD', $_SERVER))
+        {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+if (!is_cli()) {
+    $env = json_decode(\getenv('CONFIG_ENV'));
+    $app = new App($env);
+   $page = !empty($page) ? $page : $_SERVER['REQUEST_URI'];
+   $app->openPage($page);
+}

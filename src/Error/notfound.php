@@ -1,3 +1,13 @@
+<?php
+if ( defined('STDIN') ||  
+             php_sapi_name() === 'cli' || 
+             array_key_exists('SHELL', $_ENV) ||
+             empty($_SERVER['REMOTE_ADDR']) and !isset($_SERVER['HTTP_USER_AGENT']) and count($_SERVER['argv']) > 0 ||
+            !array_key_exists('REQUEST_METHOD', $_SERVER))
+        {
+			return;
+		}else {
+		?>	
 <html>
 <head>
 <title>PATE NOT FOUND</title>
@@ -49,3 +59,5 @@ body{
 </div>
 </body>
 </html>
+
+<?php } ?>

@@ -4,6 +4,7 @@ use \Appkita\SPARK\Exceptions\PHPVersionNotSupport;
 use \Appkita\SPARK\Exceptions\PathNotExist;
 use \Appkita\SPARK\Exceptions\CLIException;
 use \Appkita\SPARK\CLI;
+use \Appkita\SPARK\Helps;
 use Exception;
 use Throwable;
 
@@ -13,14 +14,24 @@ class Serve {
 
 	const MIN_VERSION = '7.2';
 	private $config;
+	private $version = '1.0';
+	private $pid = null;
 
 	function __construct($config=[]) {
 		ignore_user_abort(true);
 		$this->check();
 		$this->config = $config;
 		$this->initConfig($config);
+		
+		if (\class_exists('\Composer\InstalledVersions')) {
+			$this->version = \Composer\InstalledVersions::getPrettyVersion('appkita/spark-serve');
+		}
 	}
 	
+	public function getPID() {
+		return $this->pid;
+	}
+
 	public function run() {
 		$cmd = "php -S %s:%s %s";
 		if (!\file_exists($this->getPath())) {
@@ -34,27 +45,50 @@ class Serve {
 			'router'=>$this->getRouter()
 		];
 		\putenv('CONFIG_ENV='.json_encode($configuration));
-		$PID = $this->LaunchBackgroundProcess($cmd);
+		CLI::clearScreen();
+		$this->pid = $this->LaunchBackgroundProcess($cmd);
+		
 		CLI::clearScreen();
 		if ($this->show_header){
 			$this->showHeader();
 		}
-		CLI::write('Server Run in '. $this->gethost() .':'. $this->getPort(), 'green');
+		CLI::write($this->pid .' > Server Run in '. $this->gethost() .':'. $this->getPort(), 'white');
 	}
+
+	public function clear() {
+		if(PHP_OS=='WINNT' || PHP_OS=='WIN32' || PHP_OS=='Windows'){
+			pclose($this->pid);
+		} else {
+			\exec('kill '. $this->pid);
+		}
+	}
+
+    private function detectChangeFile(){
+        $this->listFiles = Helps::listFiles($this->path);
+            for ($i =0; $i < sizeof($this->listFiles); $i++) {
+                $fl = $this->listFiles[$i];
+                $modifiedTs = filemtime($fl);
+                $path_info = \pathinfo($fl);
+                $filename = $path_info['filename'];
+                if (isset($this->log_files[$filename])) {
+                    if ($modifiedTs != $this->log_files[$filename]) {
+                        return true;
+                        break;
+                    }
+                } else {
+                    $this->log_files[$filename];
+                    return true;
+                    break;
+                }
+            }
+        return false;
+    }
+
 	function LaunchBackgroundProcess($command){
 		if(PHP_OS=='WINNT' || PHP_OS=='WIN32' || PHP_OS=='Windows'){
-			// Windows
-			$command = 'start "" '. $command;
+			return \popen($command, 'r');
 		} else {
-			// Linux/UNIX
-			$command = $command .' /dev/null &';
-		}
-		$handle = popen($command, 'r');
-		if($handle!==false){
-			pclose($handle);
-			return true;
-		} else {
-			return false;
+			return exec($command .' > /dev/null &');
 		}
 	}
 
@@ -83,7 +117,7 @@ class Serve {
 
     protected function _header() {
         if (empty($this->header)) {
-            $this->header = sprintf('APPKITA SPARK v%s Command Line Tool - Server Time: %s UTC%s', \Composer\InstalledVersions::getPrettyVersion('appkita/spark-serve'), date('Y-m-d H:i:s'), date('P'));
+            $this->header = sprintf('APPKITA SPARK v%s Command Line Tool - Server Time: %s UTC%s', $this->version, date('Y-m-d H:i:s'), date('P'));
         }
         return $this->header;
     }
