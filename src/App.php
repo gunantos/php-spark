@@ -5,6 +5,7 @@ use Exception;
 Class App {
     protected $path = '';
     protected $router = '';
+    protected $autoload = '';
     private $indexFiles = ['index.html', 'index.php'];
 
     function __construct($config = '') {
@@ -19,15 +20,14 @@ Class App {
         if (!empty($config)) {
             if (\is_string($config)) {
                 $this->path = $config;
-            } else if (\is_object($config)) {
+            } else {
+                if (\is_array($config)) {
+                    $config = (object) $config;
+                }
                 if (isset($config->path)) $this->path = $config->path;
                 if (isset($config->router)) $this->router = $config->router;
                 if (isset($config->indexFiles)) $this->indexFiles = $config->indexFiles;
-            } else if (\is_array($config)) {
-                $config = (object) $config;
-                if (isset($config->path)) $this->path = $config->path;
-                if (isset($config->router)) $this->router = $config->router;
-                if (isset($config->indexFiles)) $this->indexFiles = $config->indexFiles;
+                if (isset($config->autoload)) $this->autoload = $config->autoload;
             }
         }
     }
@@ -73,6 +73,20 @@ Class App {
         }
     }
 
+    public function _autoload() {
+        if (is_string($this->autoload)) {
+            if (\file_exists($this->autoload)) {
+                require_once $this->autoload;
+            }
+        } else if (\is_array($this->autoload)) {
+            for($i = 0; $i < sizeof($this->autoload); $i++) {
+                if (\file_exists($this->autoload[$i])) {
+                    require_once $this->autoload[$i];
+                }
+            }
+        }
+    }
+
     public function openPage($page = null) {
         if (empty($page)) {
             $page = '';
@@ -87,6 +101,7 @@ Class App {
         $page = self::getIndexPage($page);
         $ext  = (new \SplFileInfo($page))->getExtension();
         if (\strtolower($ext) == 'php') {
+            $this->_autoload();
             include_once $page;
             return true;
         } else {

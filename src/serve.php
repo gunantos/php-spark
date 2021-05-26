@@ -42,7 +42,8 @@ class Serve {
 		$configuration = (object) [
 			'indexFiles'=>$this->getIndexFiles(),
 			'path'=>$this->getPath(),
-			'router'=>$this->getRouter()
+			'router'=>$this->getRouter(),
+			'autoload'=>$this->getAutoload()
 		];
 		\putenv('CONFIG_ENV='.json_encode($configuration));
 		CLI::clearScreen();

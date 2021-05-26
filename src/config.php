@@ -11,6 +11,7 @@ trait Config {
     protected $host = '127.0.0.1';
     protected $port = '8080';
     private $indexFiles = ['index.html', 'index.php'];
+    protected $autoload = [];
     protected $show_header = true;
 
     protected function initConfig() {
@@ -28,6 +29,7 @@ trait Config {
                     if (isset($path[2])) $this->setPort($path[2]);
                     if (isset($path[3])) $this->setShowHeader($path[3]);
                     if (isset($path[4])) $this->setRouter($path[4]);
+                    if (isset($path[5])) $this->setAutoload($path[5]);
                 } else {
                     if (isset($path[3])) $this->setPort($path[2]);
                     if (isset($path['path'])) $this->setPath($path['path']);
@@ -36,6 +38,7 @@ trait Config {
                     if (isset($path['port'])) $this->setPort($path['port']);
                     if (isset($path['indexFiles'])) $this->setIndexFiles($path['indexFiles']);
                     if (isset($path['show_header'])) $this->setShowHeader($path['show_header']);
+                    if (isset($path['autoload'])) $this->setAutoload($path['autoload']);
                 }
             } else {
                 $this->setPath($path);
@@ -130,5 +133,28 @@ trait Config {
 
     public function getPort() : string {
         return (string) empty($this->port) ? '8080' : $this->port;
+    }
+
+    public function setAutoload($autoload = '') {
+        if (!empty($autoload)) {
+            $this->autoload = $autoload;
+        }
+        return $this;
+    }
+
+    public function getAutoload() {
+        if (empty($this->autoload) || (\is_array($this->autoload) && sizeof($this->autoload) < 1)) {
+            $this->autoload = $this->getComposerLoad();
+        }
+        return $this->autoload;
+    }
+
+    protected function getComposerLoad() {
+        if (\class_exists('\Composer\Factory')) {
+			$projectRootPath = dirname(\Composer\Factory::getComposerFile());
+            return $projectRootPath .DIRECTORY_SEPARATOR.'vendor'.DIRECTORY_SEPERATOR.'autload.php';
+		} else {
+            return '';   
+        }
     }
 }
