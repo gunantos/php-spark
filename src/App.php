@@ -90,16 +90,17 @@ Class App {
             include_once $page;
             return true;
         } else {
-            if ($ext == 'html' || $ext == 'htm') {
+             if ($ext == 'html' || $ext == 'htm') {
                 $mimi = 'text/html';
             } else if ($ext == 'xhtml') {
                 $mimi = 'application/xhtml+xml';
             }else if ($ext == 'js') {
                 $mimi = 'application/javascript';
+                header('access-control-allow-origin: *');
             }else{
                 $mimi = mime_content_type($page);
             }
-            header('Content-Type: '. $mimi);
+             header('Content-Type: '. $mimi);
             $fh = fopen($page, 'r');
             fpassthru($fh);
             fclose($fh);
