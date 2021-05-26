@@ -94,7 +94,9 @@ Class App {
                 $mimi = 'text/html';
             } else if ($ext == 'xhtml') {
                 $mimi = 'application/xhtml+xml';
-            }else {
+            }else if ($ext == 'js') {
+                $mimi = 'application/javascript';
+            }else{
                 $mimi = mime_content_type($page);
             }
             header('Content-Type: '. $mimi);
