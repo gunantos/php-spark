@@ -9,6 +9,14 @@ use \Appkita\SPARK\Helps;
 use \Appkita\SPARK\Request;
 use \Appkita\SPARK\Config;
 
+class Controller {
+    protected $request;
+
+    public function init(Request $request) {
+        $this->request = $request;
+    }
+}
+
 Class App {
     use Config;
     public $request;
@@ -95,6 +103,7 @@ Class App {
                  $classname .= $initclass->class;
                  $class = new $classname();
                  $uri = $this->request->getUri();
+                 $class->init($this->request);
                  if (\is_callable(array($class, strtolower($uri)))) {
                      $param = $this->request->argsURL($uri);
                      return \call_user_func_array(array($class, $uri), $param);
