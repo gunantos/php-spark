@@ -1,11 +1,14 @@
 <?php
-include "../src/autoload.php";
+require "vendor/appkita/spark-serve/src/autoload.php";
 $config = [
   'host'=>'127.0.0.1',
   'port'=>8080,
   'path'=>__DIR__.DIRECTORY_SEPARATOR."public".DIRECTORY_SEPARATOR,
   'indexFiles'=> ['index.php', 'index.html'],
-  'router' => []
+  'router' => [],
+  'autoload'=>__DIR__.DIRECTORY_SEPARATOR.'vendor'.DIRECTORY_SEPARATOR.'autoload.php',
+  'rewrite'=>true,
+  'file_class'=>'api.php'
 ];
 $serve = new Appkita\SPARK\Serve($config); // default array empty || []
 $serve->run();

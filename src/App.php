@@ -1,71 +1,40 @@
 <?php
 namespace Appkita\SPARK;
+require_once __DIR__.DIRECTORY_SEPARATOR.'config.php';
+require_once __DIR__.DIRECTORY_SEPARATOR.'helps.php';
+require_once __DIR__.DIRECTORY_SEPARATOR.'Request.php';
+
 use Exception;
+use \Appkita\SPARK\Helps;
+use \Appkita\SPARK\Request;
+use \Appkita\SPARK\Config;
 
 Class App {
-    protected $path = '';
-    protected $router = '';
-    private $indexFiles = ['index.html', 'index.php'];
+    use Config;
+    public $request;
 
     function __construct($config = '') {
-        $this->init($config);
+        $this->initConfig($config);
+
+        $this->request = new Request([
+            'host'=>$this->getHost(),
+            'port'=>$this->getPort(),
+            'path'=>$this->getPath(),
+            'router'=>$this->getRouter(),
+            'indexFiles'=>$this->getIndexFiles()
+        ]);
     }
 
-    public function getListFiles() {
-        return $this->listFiles;
-    }
-
-    public function init($config = '') {
-        if (!empty($config)) {
-            if (\is_string($config)) {
-                $this->path = $config;
-            } else if (\is_object($config)) {
-                if (isset($config->path)) $this->path = $config->path;
-                if (isset($config->router)) $this->router = $config->router;
-                if (isset($config->indexFiles)) $this->indexFiles = $config->indexFiles;
-            } else if (\is_array($config)) {
-                $config = (object) $config;
-                if (isset($config->path)) $this->path = $config->path;
-                if (isset($config->router)) $this->router = $config->router;
-                if (isset($config->indexFiles)) $this->indexFiles = $config->indexFiles;
-            }
+    public function showError(int $code = 404) {
+        $page = $this->pageError($code);
+        if (\file_exists($page)) {
+            $page = $this->pageError(404);
         }
-    }
-
-    public function getRouter($page) {
-        $router = $this->router;
-        if (\is_array($router)){
-            foreach ($router as $regex => $fn)
-            {
-                if (preg_match('%'.$regex.'%', $page))
-                {
-                    return dirname(__FILE__) . $fn;
-                    break;
-                }
-            }
-        }
-        return $page;
-    }
-
-    public function getIndexPage($page) {
-        if (is_dir($page))
-        {
-            foreach ($this->indexFiles as $filename)
-            {
-
-                $fn = $page.DIRECTORY_SEPARATOR.$filename;
-                if (is_file($fn)) {
-                    return $fn;
-                    break;
-                }
-            }
-            return self::pageError(404);
-        }
-        return $page;
+        include $page;
+        die();
     }
 
     public function pageError(int $code=404) {
-        $path = \dirname(__FILE__);
         switch($code) {
             case 404:
                 return 'Error/notfound.php';
@@ -73,22 +42,73 @@ Class App {
         }
     }
 
-    public function openPage($page = null) {
-        if (empty($page)) {
-            $page = '';
+    public function _autoload() {
+        if (is_string($this->autoload)) {
+            if (\file_exists($this->autoload)) {
+                require_once $this->autoload;
+            }
+        } else if (\is_array($this->autoload)) {
+            for($i = 0; $i < sizeof($this->autoload); $i++) {
+                if (\file_exists($this->autoload[$i])) {
+                    require_once $this->autoload[$i];
+                }
+            }
         }
-        $page = \ltrim(\rtrim(rtrim($page, '/'), '\\'));
-        $page = $this->path . $page;
-        if (!\file_exists($page)) {
-            include_once self::pageError(404);
-            return true;
+    }
+
+    public function run() {
+        $page = rtrim($this->request->getPage(), '\\%');
+        $ext  = (new \SplFileInfo($page))->getExtension();
+        $isClass = false;
+        if (empty($ext)) {
+            if ($this->getRewrite() && !empty($this->getFileClass())) {
+                $page = $this->getFileClass();
+                $isClass = true;
+            } else {
+               $page = $this->pageError(404);
+            }
         }
-        $page = self::getRouter($page);
-        $page = self::getIndexPage($page);
+        return $this->openPage($page, $isClass);
+    }
+
+    public function openPage($page, $isClass = false) {
         $ext  = (new \SplFileInfo($page))->getExtension();
         if (\strtolower($ext) == 'php') {
-            include_once $page;
-            return true;
+            $this->_autoload();
+            $exp_page  = explode('\\', $page);
+            $pagename = str_replace('.php', '', $exp_page[(sizeof($exp_page) - 1)]);
+            $class_file = strtolower(str_replace('.php', '', $this->file_class));
+            if ($pagename == $class_file) {
+                $isClass = true;
+            }
+             if ($isClass && $this->getRewrite() && !empty($this->getFileClass())) {
+                 if (file_exists($page)) {
+                     $page = $page;
+                 } else if (file_exists($this->getPath() . $page)) {
+                     $page = $this->getPath().$page;
+                 } else {
+                     return $this->showError(404);
+                 }
+                 include_once $page;
+                 $initclass = Helps::getClassNameFile($page);
+                 $classname = !empty($initclass->namespace) ? '\\'. $initclass->namespace : '\\';
+                 $classname .= $initclass->class;
+                 $class = new $classname();
+                 $uri = $this->request->getUri();
+                 if (\is_callable(array($class, strtolower($uri)))) {
+                     $param = $this->request->argsURL($uri);
+                     return \call_user_func_array(array($class, $uri), $param);
+                 } else {
+                   return $this->showError(404);
+                 }
+             } else {
+                 if (file_exists($page)) {
+                    include_once $page;
+                 } else {
+                   return $this->showError(404);
+                 }                
+             }
+             die();
         } else {
              if ($ext == 'html' || $ext == 'htm') {
                 $mimi = 'text/html';
@@ -100,11 +120,11 @@ Class App {
             }else{
                 $mimi = mime_content_type($page);
             }
-             header('Content-Type: '. $mimi);
+            header('Content-Type: '. $mimi);
             $fh = fopen($page, 'r');
             fpassthru($fh);
             fclose($fh);
-            return true;
+            die();
         }        
     }
 }
@@ -124,6 +144,5 @@ Class App {
 if (!is_cli()) {
     $env = json_decode(\getenv('CONFIG_ENV'));
     $app = new App($env);
-   $page = !empty($page) ? $page : $_SERVER['REQUEST_URI'];
-   $app->openPage($page);
+   $app->run();
 }
